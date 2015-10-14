@@ -1,7 +1,7 @@
 bmcgehee/SimpleApp6:
 
   Env:
-    - PORT: 80
+    - PORT: "8000"
     
   PkgInclude:
     - simpleapp.php
@@ -46,11 +46,19 @@ bmcgehee/SimpleApp6:
 
   PostStart:
     - echo "PostStart"
-    - publicip=$(curl -s curlmyip.com)
+    - publicip=$(curl -s ident.me)
+    - echo "Public IP $publicip"
     
     - echo "Starting Ghost Inspector tests"
-    - results=$(curl -s "https://api.ghostinspector.com/v1/suites/560319c919ba3dde3b143689/execute/?apiKey=0251cc43d8d00c3613aa2d1d71e70fc623690e42")
-    #- results=$(curl -s "https://api.ghostinspector.com/v1/suites/560319c919ba3dde3b143689/execute/?apiKey=0251cc43d8d00c3613aa2d1d71e70fc623690e42&startUrl=http://$publicip")
+    #- results=$(curl -s "https://api.ghostinspector.com/v1/suites/5603199999b0d3deb3143689/execute/?apiKey=abcdefghijklmnopqrstuvwxyz0123456789z")
+    - results=$(curl -s "https://api.ghostinspector.com/v1/suites/5603199999b0d3deb3143689/execute/?apiKey=abcdefghijklmnopqrstuvwxyz0123456789z&startUrl=http://$publicip:$PORT/")
+    
+    - if [[ $(jq '.code' <<< $results) != "\"SUCCESS\"" ]]; then
+    -   echo "Tests failed to run!"
+    -   echo ""
+    -   echo "$results"
+    -   exit 1
+    - fi
     
     - IFS=$'\n'
     - lines=$(jq '.' <<< $results)
@@ -75,7 +83,6 @@ bmcgehee/SimpleApp6:
     -   exit 1
     - fi
 
-
   PreTerminate:
     - echo "PreTerminate"
 
@@ -86,5 +93,5 @@ bmcgehee/SimpleApp6:
     - echo "PostTerminate"
 
   Exec:
-    - 'sudo php -S 0.0.0.0:$PORT simpleapp.php'
+    - 'php -S 0.0.0.0:$PORT simpleapp.php'
 
