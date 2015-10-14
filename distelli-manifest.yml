@@ -1,0 +1,90 @@
+bmcgehee/SimpleApp6:
+
+  Env:
+    - PORT: 80
+    
+  PkgInclude:
+    - simpleapp.php
+  
+  PkgExclude:
+     - '*.yml'
+     
+  CommitData:
+     - RepoType: Git
+     - RepoPath: .
+  
+  PreBuild:
+    - echo "PreBuild"
+  
+  Build:
+    - echo "Build"
+    - echo "No Build necessary"
+    
+  AfterBuildSuccess:
+    - echo "AfterBuildSuccess"
+  
+  AfterBuildFailure:
+    - echo "AfterBuildFailure"
+  
+  PreInstall:
+    - echo "PreInstall"
+    - sudo apt-get -y -qq update
+    - sudo apt-get -y install jq curl
+    - sudo apt-get -y install php5-cli
+
+  PostInstall:
+    - echo "PostInstall"
+       
+  PreRestart:
+    - echo "PreRestart"
+
+  PostRestart:
+    - echo "PostRestart"
+
+  PreStart:
+    - echo "PreStart"
+
+  PostStart:
+    - echo "PostStart"
+    - publicip=$(curl -s curlmyip.com)
+    
+    - echo "Starting Ghost Inspector tests"
+    - results=$(curl -s "https://api.ghostinspector.com/v1/suites/560319c919ba3dde3b143689/execute/?apiKey=0251cc43d8d00c3613aa2d1d71e70fc623690e42")
+    #- results=$(curl -s "https://api.ghostinspector.com/v1/suites/560319c919ba3dde3b143689/execute/?apiKey=0251cc43d8d00c3613aa2d1d71e70fc623690e42&startUrl=http://$publicip")
+    
+    - IFS=$'\n'
+    - lines=$(jq '.' <<< $results)
+
+    - passing=1
+    - counter=0
+
+    - for line in $lines; do
+    -   printf "$counter " 
+    -   'if [[ "$line" =~ "\"passing\": false," || "$line" =~ "\"passing\": null," ]]; then'
+    -     passing=0
+    -     printf "***> "
+    -   fi
+    -   echo "$line"
+    -   let counter=counter+1
+    - done
+    
+    - if [ "$passing" -gt 0 ]; then
+    -   echo "Ghost Inspector Integration tests PASSED SUCCESSFULLY!"
+    - else
+    -   echo "Ghost Inspector Integration tests FAILED!!!"
+    -   exit 1
+    - fi
+
+
+  PreTerminate:
+    - echo "PreTerminate"
+
+  Terminate:
+    - echo "Terminate"
+
+  PostTerminate:
+    - echo "PostTerminate"
+
+  Exec:
+    - 'sudo php -S 0.0.0.0:$PORT simpleapp.php'
+
